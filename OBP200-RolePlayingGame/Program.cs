@@ -9,17 +9,17 @@ class Program
 
     // Spelarens "databas": alla värden som strängar
     // index: 0 Name, 1 Class, 2 HP, 3 MaxHP, 4 ATK, 5 DEF, 6 GOLD, 7 XP, 8 LEVEL, 9 POTIONS, 10 INVENTORY (semicolon-sep)
-    static string[] Player = new string[11];
+    static string[] Player = new string[11];  //DanHaden skapar en array av värden för player som tillhör Programklassen, borde kanske tillhöra en dedikerad player class?
 
     // Rum: [type, label]
     // types: battle, treasure, shop, rest, boss
-    static List<string[]> Rooms = new List<string[]>();
+    static List<string[]> Rooms = new List<string[]>();  //DanHaden denna skulle då kunna tillhöra environment-class, men undersök syfte med massa datatyper som tillhör program klassen
 
     // Fiendemallar: [type, name, HP, ATK, DEF, XPReward, GoldReward]
     static List<string[]> EnemyTemplates = new List<string[]>();
 
     // Status för kartan
-    static int CurrentRoomIndex = 0;
+    static int CurrentRoomIndex = 0;  //DanHaden CurrentRoomIndex bestäms flera gånger?
 
     // Random
     static Random Rng = new Random();
@@ -33,9 +33,9 @@ class Program
 
         while (true)
         {
-            ShowMainMenu();
+            ShowMainMenu();  //DanHaden borde eventuellt tillhöra en Meny-klass som andra menyer ärver ifrån
             Console.Write("Välj: ");
-            var choice = (Console.ReadLine() ?? "").Trim();
+            var choice = (Console.ReadLine() ?? "").Trim(); //DanHaden variabel namn kan göras mer beskrivande, men blir då längre - förm onödigt
 
             if (choice == "1")
             {
@@ -58,24 +58,24 @@ class Program
 
     // ======= Meny & Init =======
 
-    static void ShowMainMenu()
+    static void ShowMainMenu()  //DanHaden skulle då tillhöra meny class
     {
         Console.WriteLine("=== Text-RPG ===");
         Console.WriteLine("1. Nytt spel");
         Console.WriteLine("2. Avsluta");
     }
 
-    static void StartNewGame()
+    static void StartNewGame()  //DanHaden borde eventuellt tillhöra eller åtminstone passa data till en spelarklass
     {
         Console.Write("Ange namn: ");
         var name = (Console.ReadLine() ?? "").Trim();
-        if (string.IsNullOrWhiteSpace(name)) name = "Namnlös";
+        if (string.IsNullOrWhiteSpace(name)) name = "Namnlös"; //DanHaden tillåter "Namnlösa" karaktärer, kanske borde tvinga spelaren till att bestämma ett namn
 
-        Console.WriteLine("Välj klass: 1) Warrior  2) Mage  3) Rogue");
+        Console.WriteLine("Välj klass: 1) Warrior  2) Mage  3) Rogue"); //DanHaden borde ha dependence till en spelarclass, en spelare HAS A klass. 
         Console.Write("Val: ");
-        var k = (Console.ReadLine() ?? "").Trim();
+        var k = (Console.ReadLine() ?? "").Trim();  //DanHaden Variabelnamn är otydligt
 
-        string cls = "Warrior";
+        string cls = "Warrior";                    //DanHaden Överflödig
         int hp = 0, maxhp = 0, atk = 0, def = 0;
         int potions = 0, gold = 0;
         
@@ -94,13 +94,13 @@ class Program
                 maxhp = 32; hp = 32; atk = 8; def = 3; potions = 3; gold = 20;
                 break;
             default:
-                cls = "Warrior";
+                cls = "Warrior";                            //DanHaden eventuellt också överflödig, väljer man ingen klass, kanske man ska tvingas välja en klass
                 maxhp = 40; hp = 40; atk = 7; def = 5; potions = 2; gold = 15;
                 break;
         }
 
-        // Fyll player-array
-        Player[0] = name;
+        // Fyll player-array             //DanHaden detta array skulle eventuellt kunna tillhöra en spelarclass, och den borde nog inkapslas -
+        Player[0] = name;                //DanHaden - då ingångsvärden inte bör gå att ändras på före spelets start. 
         Player[1] = cls;
         Player[2] = hp.ToString();
         Player[3] = maxhp.ToString();
@@ -110,10 +110,10 @@ class Program
         Player[7] = "0";   // XP
         Player[8] = "1";   // LEVEL
         Player[9] = potions.ToString();
-        Player[10] = "Wooden Sword;Cloth Armor"; // inventory som semicolon-separerad sträng
+        Player[10] = "Wooden Sword;Cloth Armor"; // inventory som semicolon-separerad sträng  //DanHaden eventuellt problem om man vill att "gear" ska tillföra stats. 
 
         // Initiera karta (linjärt äventyr)
-        Rooms.Clear();
+        Rooms.Clear();                              //DanHaden skulle kunna tillhöra en Environment class.
         Rooms.Add(new[] { "battle", "Skogsstig" });
         Rooms.Add(new[] { "treasure", "Gammal kista" });
         Rooms.Add(new[] { "shop", "Vandrande köpman" });
@@ -122,22 +122,22 @@ class Program
         Rooms.Add(new[] { "battle", "Grottans djup" });
         Rooms.Add(new[] { "boss", "Urdraken" });
 
-        CurrentRoomIndex = 0;
+        CurrentRoomIndex = 0;   //DanHaden CurrentRoomIndex bestäms flera gånger?
 
         Console.WriteLine($"Välkommen, {name} the {cls}!");
-        ShowStatus();
+        ShowStatus(); //DanHaden metod skulle kunna tillhöra player-class
     }
 
     static void RunGameLoop()
     {
         while (true)
         {
-            var room = Rooms[CurrentRoomIndex];
-            Console.WriteLine($"--- Rum {CurrentRoomIndex + 1}/{Rooms.Count}: {room[1]} ({room[0]}) ---");
+            var room = Rooms[CurrentRoomIndex]; //DanHaden allt detta skulle kunna tillhöra en environment-class
+            Console.WriteLine($"--- Rum {CurrentRoomIndex + 1}/{Rooms.Count}: {room[1]} ({room[0]}) ---"); //DanHaden vad händer här? Aha man vill visa rumsordning och namn
 
             bool continueAdventure = EnterRoom(room[0]);
             
-            if (IsPlayerDead())
+            if (IsPlayerDead())  //DanHaden Kan detta integreras med ett interface: "IAlive"? Samma för fiender
             {
                 Console.WriteLine("Du har stupat... Spelet över.");
                 break;
@@ -175,9 +175,9 @@ class Program
 
     // ======= Rumshantering =======
 
-    static bool EnterRoom(string type)
+    static bool EnterRoom(string type)   //DanHaden skulle kunna tillhöra environment class
     {
-        switch ((type ?? "battle").Trim())
+        switch ((type ?? "battle").Trim()) //DanHaden här avgör programmet vilken typ av encounter
         {
             case "battle":
                 return DoBattle(isBoss: false);
@@ -197,12 +197,12 @@ class Program
 
     // ======= Strid =======
 
-    static bool DoBattle(bool isBoss)
+    static bool DoBattle(bool isBoss)   //DanHaden skulle kunna tillhöra Enemy class, det kan vara aktuellt med en Enemy class som ärver från Player då de delar vissa variabler
     {
         var enemy = GenerateEnemy(isBoss);
         Console.WriteLine($"En {enemy[1]} dyker upp! (HP {enemy[2]}, ATK {enemy[3]}, DEF {enemy[4]})");
 
-        int enemyHp = ParseInt(enemy[2], 10);
+        int enemyHp = ParseInt(enemy[2], 10); //DanHaden kan det vara värt att skapa en enemy-array?
         int enemyAtk = ParseInt(enemy[3], 3);
         int enemyDef = ParseInt(enemy[4], 0);
 
@@ -278,7 +278,7 @@ class Program
 
     static string[] GenerateEnemy(bool isBoss)
     {
-        if (isBoss)
+        if (isBoss)      //DanHaden boss kan ärva från enemy
         {
             // Boss-mall
             return new[] { "boss", "Urdraken", "55", "9", "4", "30", "50" };
@@ -636,7 +636,7 @@ class Program
 
     // ======= Status =======
 
-    static void ShowStatus()
+    static void ShowStatus()  //DanHaden metod skulle kunna tillhöra player-class
     {
         Console.WriteLine($"[{Player[0]} | {Player[1]}]  HP {Player[2]}/{Player[3]}  ATK {Player[4]}  DEF {Player[5]}  LVL {Player[8]}  XP {Player[7]}  Guld {Player[6]}  Drycker {Player[9]}");
         var inv = (Player[10] ?? "");
