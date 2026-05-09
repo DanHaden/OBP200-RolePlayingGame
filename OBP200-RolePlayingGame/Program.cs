@@ -20,15 +20,13 @@ namespace OBP200_RolePlayingGame
             Def = def;
         }
 
-        public void TakeDamage(int damage)
+        public virtual void TakeDamage(int damage)
         {
             Hp = Math.Max(0, Hp - Math.Max(0, damage));
         }
 
-        public void Heal(int amount)
-        {
-            Hp = Math.Min(MaxHp, Hp + Math.Max(0, amount));
-        }
+        public abstract int CalculateDamage(int enemyDef);
+
     }
 
     public class Player : Character
@@ -74,6 +72,10 @@ namespace OBP200_RolePlayingGame
                 
         }
 
+        public void Heal(int amount)
+        {
+            Hp = Math.Min(MaxHp, Hp + Math.Max(0, amount));
+        }
         public void AddPotion(int amount)
         {
             Potions += amount;
@@ -157,16 +159,62 @@ namespace OBP200_RolePlayingGame
             Def += amount;
         }
 
+        public override void TakeDamage(int damage)
+        {
+            Hp = Math.Max(0, Hp - Math.Max(0, damage));
+
+        }
+
+        public override int CalculateDamage(int enemyDef)
+        {
+            int baseDmg = Math.Max(1, Atk - (enemyDef / 2));
+            int roll = new Random().Next(0, 3);
+
+            switch (Cls)
+            {
+                case "Warrior":
+                    baseDmg += 1;
+                    break;
+                case "Mage":
+                    baseDmg += 2;
+                    break;
+                case "Rogue":
+                    baseDmg += (new Random().NextDouble() < 0.2) ? 4 : 0;
+                    break;
+            }
+
+            return Math.Max(1, baseDmg + roll);
+        }
             
     }
             
-    //public class Enemy : Character
-    //{
-      //  public int XPReward {get; protected set; }
-        //public int GoldReward {get; protected set; }
+    public class Enemy : Character
+    {
+    public string Type { get; protected set; }
+    public int XpReward { get; protected set; }
+    public int GoldReward { get; protected set; }
 
+    public Enemy(string type, string name, int hp, int atk, int def, int xpReward, int goldReward) : base(name, hp, hp, atk, def)
         
-    //}
+        {
+            Type = type;
+            XpReward = xpReward;
+            GoldReward = goldReward;
+        }
+
+        public override void TakeDamage(int damage)
+        {
+            base.TakeDamage(damage);
+            Console.WriteLine($"{Name} tar {damage} skada!");
+
+        }
+
+        public override int CalculateDamage(int playerDef)
+        {
+            int baseDmg = Math.Max(1, Atk - (playerDef / 2));
+            return baseDmg;
+        }
+    }
 
 
 
@@ -234,27 +282,21 @@ namespace OBP200_RolePlayingGame
 
             Console.WriteLine("Välj klass: 1) Warrior  2) Mage  3) Rogue"); 
             Console.Write("Val: ");
-            var k = (Console.ReadLine() ?? "").Trim();  
+            var clsChoice = (Console.ReadLine() ?? "").Trim();  
 
-            
-            
-            
-            
-                                
             
             List<string> startInventory = new List<string> { "Wooden Sword", "Cloth Armor" };
 
 
-
-            switch (k)
+            switch (clsChoice)
             {
-                case "1": // Warrior: tankig
+                case "1": 
                     playerChar = new Player("Warrior", name, 40, 40, 7, 5, 2, 15, 0, 1, startInventory); 
                     break;
-                case "2": // Mage: hög damage, låg def
+                case "2": 
                     playerChar = new Player("Mage", name, 28, 28, 10, 2, 2, 15, 0, 1, startInventory); 
                     break;
-                case "3": // Rogue: krit-chans
+                case "3": 
                     playerChar = new Player("Rogue", name, 32, 32, 8, 3, 3, 20, 0, 1, startInventory);
                     break;
                 default:
@@ -277,19 +319,19 @@ namespace OBP200_RolePlayingGame
             CurrentRoomIndex = 0;   //DanHaden CurrentRoomIndex bestäms flera gånger?
 
             Console.WriteLine($"Välkommen, {playerChar.Name} the {playerChar.Cls}!");
-            ShowStatus(); //DanHaden metod skulle kunna tillhöra player-class
+            
         }
 
         static void RunGameLoop()
         {
             while (true)
             {
-                var room = Rooms[CurrentRoomIndex]; //DanHaden allt detta skulle kunna tillhöra en environment-class
-                Console.WriteLine($"--- Rum {CurrentRoomIndex + 1}/{Rooms.Count}: {room[1]} ({room[0]}) ---"); //DanHaden vad händer här? Aha man vill visa rumsordning och namn
+                var room = Rooms[CurrentRoomIndex]; 
+                Console.WriteLine($"--- Rum {CurrentRoomIndex + 1}/{Rooms.Count}: {room[1]} ({room[0]}) ---"); 
 
                 bool continueAdventure = EnterRoom(room[0]);
                 
-                if (IsPlayerDead())  //DanHaden Kan detta integreras med ett interface: "IAlive"? Samma för fiender
+                if (IsPlayerDead())  
                 {
                     Console.WriteLine("Du har stupat... Spelet över.");
                     break;
@@ -327,9 +369,9 @@ namespace OBP200_RolePlayingGame
 
         // ======= Rumshantering =======
 
-        static bool EnterRoom(string type)   //DanHaden skulle kunna tillhöra environment class
+        static bool EnterRoom(string type)   
         {
-            switch ((type ?? "battle").Trim()) //DanHaden här avgör programmet vilken typ av encounter
+            switch ((type ?? "battle").Trim()) 
             {
                 case "battle":
                     return DoBattle(isBoss: false);
@@ -349,20 +391,20 @@ namespace OBP200_RolePlayingGame
 
         // ======= Strid =======
 
-        static bool DoBattle(bool isBoss)   //DanHaden skulle kunna tillhöra Enemy class, det kan vara aktuellt med en Enemy class som ärver från Player då de delar vissa variabler
+        static bool DoBattle(bool isBoss)   
         {
-            var enemy = GenerateEnemy(isBoss);
-            Console.WriteLine($"En {enemy[1]} dyker upp! (HP {enemy[2]}, ATK {enemy[3]}, DEF {enemy[4]})");
+            Enemy enemy = GenerateEnemy(isBoss);
+            Console.WriteLine($"En {enemy.Name} dyker upp! (HP {enemy.Hp}, ATK {enemy.Atk}, DEF {enemy.Def})");
 
-            int enemyHp = ParseInt(enemy[2], 10); //DanHaden kan det vara värt att skapa en enemy-array?
-            int enemyAtk = ParseInt(enemy[3], 3);
-            int enemyDef = ParseInt(enemy[4], 0);
+            int enemyHp = enemy.Hp; 
+            int enemyAtk = enemy.Atk;
+            int enemyDef = enemy.Def;
 
             while (enemyHp > 0 && !IsPlayerDead())
             {
                 Console.WriteLine();
                 ShowStatus();
-                Console.WriteLine($"Fiende: {enemy[1]} HP={enemyHp}");
+                Console.WriteLine($"Fiende: {enemy.Name} HP={enemyHp}");
                 Console.WriteLine("[A] Attack   [X] Special   [P] Dryck   [R] Fly");
                 if (isBoss) Console.WriteLine("(Du kan inte fly från en boss!)");
                 Console.Write("Val: ");
@@ -371,15 +413,15 @@ namespace OBP200_RolePlayingGame
 
                 if (cmd == "A")
                 {
-                    int damage = CalculatePlayerDamage(enemyDef);
-                    enemyHp -= damage;
-                    Console.WriteLine($"Du slog {enemy[1]} för {damage} skada.");
+                    int damage = playerChar.CalculateDamage(enemyDef);
+                    enemyHp -= damage; //därä
+                    Console.WriteLine($"Du slog {enemy.Name} för {damage} skada.");
                 }
                 else if (cmd == "X")
                 {
                     int special = UseClassSpecial(enemyDef, isBoss);
                     enemyHp -= special;
-                    Console.WriteLine($"Special! {enemy[1]} tar {special} skada.");
+                    Console.WriteLine($"Special! {enemy.Name} tar {special} skada.");
                 }
                 else if (cmd == "P")
                 {
@@ -405,9 +447,9 @@ namespace OBP200_RolePlayingGame
                 if (enemyHp <= 0) break;
 
                 // Fiendens tur
-                int enemyDamage = CalculateEnemyDamage(enemyAtk);
+                int enemyDamage = enemy.CalculateDamage(playerChar.Def);
                 playerChar.TakeDamage(enemyDamage);
-                Console.WriteLine($"{enemy[1]} anfaller och gör {enemyDamage} skada!");
+                Console.WriteLine($"{enemy.Name} anfaller och gör {enemyDamage} skada!");
             }
 
             if (IsPlayerDead())
@@ -416,24 +458,25 @@ namespace OBP200_RolePlayingGame
             }
 
             // Vinstrapporter, XP, guld, loot
-            int xpReward = ParseInt(enemy[5], 5);
-            int goldReward = ParseInt(enemy[6], 3);
+            int xpReward = enemy.XpReward;
+            int goldReward = enemy.GoldReward;
 
             AddPlayerXp(xpReward);
             AddPlayerGold(goldReward);
 
             Console.WriteLine($"Seger! +{xpReward} XP, +{goldReward} guld.");
-            MaybeDropLoot(enemy[1]);
+            MaybeDropLoot(enemy.Name);
 
             return true;
         }
 
-        static string[] GenerateEnemy(bool isBoss)
+        static Enemy GenerateEnemy(bool isBoss)
         {
-            if (isBoss)      //DanHaden boss kan ärva från enemy
+            if (isBoss)      
             {
                 // Boss-mall
-                return new[] { "boss", "Urdraken", "55", "9", "4", "30", "50" };
+                return new Enemy("boss", "Urdraken", 55, 9, 4, 30, 50);
+                    
             }
             else
             {
@@ -446,7 +489,8 @@ namespace OBP200_RolePlayingGame
                 int def = ParseInt(template[4], 0) + Rng.Next(0, 2);
                 int xp = ParseInt(template[5], 4) + Rng.Next(0, 3);
                 int gold = ParseInt(template[6], 2) + Rng.Next(0, 3);
-                return new[] { template[0], template[1], hp.ToString(), atk.ToString(), def.ToString(), xp.ToString(), gold.ToString() };
+                return new Enemy( template[0], template[1], hp, atk, def, xp, gold);
+                                    
             }
         }
 
@@ -459,33 +503,6 @@ namespace OBP200_RolePlayingGame
             EnemyTemplates.Add(new[] { "slime", "Geléslem", "14", "3", "0", "5", "3" });
         }
 
-        static int CalculatePlayerDamage(int enemyDef)
-        {
-            int atk = playerChar.Atk;
-            string cls = playerChar.Cls ?? "Warrior";
-
-            // Beräkna grundskada
-            int baseDmg = Math.Max(1, atk - (enemyDef / 2));
-            int roll = Rng.Next(0, 3); // liten variation
-
-            switch (cls.Trim())
-            {
-                case "Warrior":
-                    baseDmg += 1; // warrior buff
-                    break;
-                case "Mage":
-                    baseDmg += 2; // mage buff
-                    break;
-                case "Rogue":
-                    baseDmg += (Rng.NextDouble() < 0.2) ? 4 : 0; // rogue crit-chans
-                    break;
-                default:
-                    baseDmg += 0;
-                    break;
-            }
-
-            return Math.Max(1, baseDmg + roll);
-        }
 
         static int UseClassSpecial(int enemyDef, bool vsBoss)
         {
@@ -547,25 +564,6 @@ namespace OBP200_RolePlayingGame
             return Math.Max(0, specialDmg);
         }
 
-        static int CalculateEnemyDamage(int enemyAtk)
-        {
-            int def = playerChar.Def;
-            int roll = Rng.Next(0, 3);
-
-            int dmg = Math.Max(1, enemyAtk - (def / 2)) + roll;
-
-            // Liten chans till "glancing blow" (minskad skada)
-            if (Rng.NextDouble() < 0.1) dmg = Math.Max(1, dmg - 2);
-
-            return dmg;
-        }
-
-        //static void playerChar.TakeDamage(int dmg)
-        //{
-         //   int hp = playerChar.Hp;
-          //  hp -= Math.Max(0, dmg);
-         //   playerChar.Hp = Math.Max(0, hp);
-        //}
 
         static void UsePotion()
         {
